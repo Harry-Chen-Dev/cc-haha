@@ -313,6 +313,18 @@ describe('ProviderService', () => {
           },
         })
       })
+
+      test('activating ChatGPT Official only persists activeId for Task 1', async () => {
+        const svc = new ProviderService()
+
+        await svc.activateProvider('openai-official')
+
+        const config = await readProvidersConfig()
+        expect(config.activeId).toBe('openai-official')
+        await expect(
+          fs.readFile(path.join(tmpDir, 'cc-haha', 'settings.json'), 'utf-8'),
+        ).rejects.toThrow()
+      })
     })
 
     test('should throw 404 for non-existent id', async () => {
@@ -740,6 +752,14 @@ describe('ProviderService', () => {
       expect(active).toBeNull()
     })
 
+    test('should return null for explicit ChatGPT Official proxy lookup', async () => {
+      const svc = new ProviderService()
+
+      const active = await svc.getProviderForProxy('openai-official')
+
+      expect(active).toBeNull()
+    })
+
     test('should return the active provider proxy config', async () => {
       const svc = new ProviderService()
       const provider = await svc.addProvider(sampleInput())
@@ -750,6 +770,15 @@ describe('ProviderService', () => {
       expect(active!.baseUrl).toBe(provider.baseUrl)
       expect(active!.apiKey).toBe(provider.apiKey)
       expect(active!.apiFormat).toBe('anthropic')
+    })
+
+    test('should return null when ChatGPT Official is the active provider', async () => {
+      const svc = new ProviderService()
+      await svc.activateProvider('openai-official')
+
+      const active = await svc.getProviderForProxy()
+
+      expect(active).toBeNull()
     })
   })
 

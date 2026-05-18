@@ -358,6 +358,10 @@ export class ProviderService {
     index.activeId = id
     await this.writeIndex(index)
 
+    if (isOpenAIOfficialProviderId(id)) {
+      return
+    }
+
     if (provider.presetId === 'official') {
       await this.clearProviderFromSettings()
     } else {
@@ -418,6 +422,12 @@ export class ProviderService {
   }
 
   async getProviderRuntimeEnv(id: string): Promise<Record<string, string>> {
+    if (isOpenAIOfficialProviderId(id)) {
+      // Task 1 only persists the built-in provider selection. Task 3 wires the
+      // dedicated OAuth runtime env for ChatGPT Official sessions.
+      return {}
+    }
+
     const provider = await this.getProvider(id)
     return this.buildManagedEnv(provider, {
       proxyPath: `/proxy/providers/${provider.id}`,
@@ -528,6 +538,9 @@ export class ProviderService {
     apiFormat: ApiFormat
   } | null> {
     if (providerId) {
+      if (isOpenAIOfficialProviderId(providerId)) {
+        return null
+      }
       const provider = await this.getProvider(providerId)
       return {
         baseUrl: provider.baseUrl,
@@ -538,6 +551,9 @@ export class ProviderService {
 
     const index = await this.readIndex()
     if (!index.activeId) return null
+    if (isOpenAIOfficialProviderId(index.activeId)) {
+      return null
+    }
     const provider = await this.getProvider(index.activeId).catch(() => null)
     if (!provider) return null
     return {
